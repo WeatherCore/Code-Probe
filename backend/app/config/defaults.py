@@ -33,7 +33,8 @@ load_dotenv(os.path.join(ROOT_DIR, ".env"))                # 把 .env 注入 os.
 DEFAULT_SYSTEM_PROMPT = """你是一个代码库智能助手。根据检索到的代码片段回答用户问题。
 回答时请引用具体的文件路径和行号，保持简洁准确。"""
 
-# 全局默认配置（运行时可在设置页改，落盘到 settings.json）
+# 全局默认配置，用户未设置时直接使用
+# （运行时可在设置页改，落盘到 settings.json）
 DEFAULT_SETTINGS = {
     "llm_api_key": "",                                     # LLM大模型密钥，默认空
     "llm_base_url": "https://api.openai.com/v1",           # LLM接口地址
