@@ -145,8 +145,7 @@ def get_repo(repo_id: str) -> dict | None:
             return r
     return None
 
-# update_repo（更新仓库元数据）：给索引流程改 status(file_count/chunk_count/error_msg)用。
-    # 读-改-写整体覆盖，非原子。
+# update_repo（更新仓库元数据）：专门用来修改仓库 JSON 元数据的通用更新工具函数
 def update_repo(repo_id: str, updates: dict) -> dict | None:
     
     repos = _load_repos()
@@ -205,10 +204,11 @@ def scan_files(repo_path: str) -> list[str]:
         # 跳过 .开头目录(隐藏/git) + __pycache__/node_modules/.venv/venv(依赖/缓存) + 其他常见干扰目录，减少扫描开销
         dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("__pycache__", "node_modules", ".venv", "venv")]
 
-        # 遍历当前目录下所有文件，只保留 .py 结尾的文件
         for f in files:
+            # 遍历当前目录下所有文件，只保留 .py 结尾的文件
             # 要支持其他语言，改这里的扩展名过滤即可，分块/索引逻辑语言无关。
             if f.endswith(".py"):
+                #  /data/uploads/xxx/main.py 完整绝对路径
                 py_files.append(os.path.join(root, f))
                 
     return py_files
