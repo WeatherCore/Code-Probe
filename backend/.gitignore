@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+data/chroma/
+data/*.json
+# 匹配所有文件夹下的 __init__.py
+**/__init__.py
