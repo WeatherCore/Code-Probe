@@ -36,16 +36,16 @@ DEFAULT_SYSTEM_PROMPT = """你是一个代码库智能助手。根据检索到�
 # 全局默认配置，用户未设置时直接使用
 # （运行时可在设置页改，落盘到 settings.json）
 DEFAULT_SETTINGS = {
-    "llm_api_key": "",                                     # LLM大模型密钥，默认空
-    "llm_base_url": "https://api.openai.com/v1",           # LLM接口地址
-    "llm_model": "gpt-4o",                                 # 对话使用的模型名称
-    "embedding_api_key": "",                               # 向量模型独立密钥
-    "embedding_base_url": "https://api.openai.com/v1",     # 向量接口地址
-    "embedding_model": "text-embedding-3-small",           # 向量化模型
-    "chunk_size": 1000,                                    # 代码切块单块最大字符数
-    "chunk_overlap": 200,                                  # 相邻块重叠字符（防止语义截断）
-    "top_k": 5,                                            # 向量检索返回最相似5个代码块
-    "system_prompt": DEFAULT_SYSTEM_PROMPT,                # 绑定上面写好的默认提示词
+    "llm_api_key": os.environ.get("LLM_API_KEY", ""),                                         # LLM大模型密钥，默认空
+    "llm_base_url": os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1"),              # LLM接口地址
+    "llm_model": os.environ.get("LLM_MODEL", "gpt-4o"),                                       # 对话使用的模型名称
+    "embedding_api_key": os.environ.get("EMBEDDING_API_KEY", ""),                             # 向量模型独立密钥
+    "embedding_base_url": os.environ.get("EMBEDDING_BASE_URL", "https://api.openai.com/v1"),  # 向量接口地址
+    "embedding_model": os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small"),           # 向量化模型
+    "chunk_size": int(os.environ.get("CHUNK_SIZE", 1000)),                                    # 代码切块单块最大字符数
+    "chunk_overlap": int(os.environ.get("CHUNK_OVERLAP", 200)),                               # 相邻块重叠字符（防止语义截断）
+    "top_k": int(os.environ.get("TOP_K", 5)),                                                 # 向量检索返回最相似5个代码块
+    "system_prompt": DEFAULT_SYSTEM_PROMPT,                                                   # 绑定上面写好的默认提示词
 }
 
 # 1.配置缺失自动兜底，防止程序崩溃
