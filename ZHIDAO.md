@@ -37,7 +37,7 @@
 - **问答侧**：问题向量化 → 向量检索 Top-K 代码块 → 拼成上下文喂给 LLM → SSE 流式吐字
 - **可视化侧**：前端把"检索到哪些块、拼了什么提示词、token 估算"全程展示出来，让 RAG 过程透明可见
 
-**为什么值得读**：项目小而全（后端 13 个 .py + 前端 11 个 .tsx/.ts），一条完整的 RAG 数据流从 HTTP 接口到向量库到流式渲染全打通，是理解 RAG 工程化的优质样本。
+**为什么值得读**：项目小而全（后端 13 个 .py + 前端 30+ 个 .tsx/.ts），一条完整的 RAG 数据流从 HTTP 接口到向量库到流式渲染全打通，是理解 RAG 工程化的优质样本。
 
 ---
 
@@ -92,26 +92,36 @@ Code-Probe/
 │   │       └── llm_client.py          # OpenAI 兼容客户端(同步/异步/Embedding)
 │   └── tests/                         # 🧪 测试(test_api.py / test_services.py)
 │
-├── frontend/                          # ⭐ 前端：React + Vite + Tailwind
-│   ├── src/
-│   │   ├── main.tsx                   # React 入口(挂载根)
-│   │   ├── App.tsx                    # 🔑 布局根：路由 + 双侧边栏(chat窄/其他宽) + 主题切换
-│   │   ├── pages/                     # 5 个页面
-│   │   │   ├── RepoManager.tsx        # 仓库管理(上传zip/指定路径/触发索引)
-│   │   │   ├── ChunksExplorer.tsx     # 分块探查(查看切块 + 源码定位)
-│   │   │   ├── SearchPlayground.tsx   # 语义搜索试验场(看检索结果+prompt预览)
-│   │   │   ├── ChatPage.tsx           # 🔑 AI对话(消费SSE流 + RAG过程展示)
-│   │   │   └── SettingsPage.tsx       # 系统设置(模型/分块/检索参数)
-│   │   ├── components/
-│   │   │   ├── MarkdownMessage.tsx    # Markdown 渲染(含代码高亮)
-│   │   │   ├── RagPanel.tsx           # RAG过程面板(内联展示检索+prompt)
-│   │   │   └── RagDrawer.tsx          # RAG过程抽屉(对话页侧拉)
-│   │   ├── services/api.ts            # 🔑 API 封装(含 SSE 手动解析)
-│   │   ├── types/index.ts             # 全局 TypeScript 类型定义
-│   │   └── lib/utils.ts               # cn() className 合并工具
-│   ├── package.json                   # 前端依赖
-│   ├── vite.config.ts                 # Vite 配置(代理 /api → 后端)
-│   └── tailwind.config.js             # Tailwind 配置
+├── frontend/                          # ⭐ 前端：React 18 + Vite 5 + TS + Tailwind v4
+│   ├── index.html                     # 入口 HTML（深色 class 默认）
+│   ├── vite.config.ts                 # Vite 配置：/api 代理 → 127.0.0.1:8000（IPv4，防 ::1 拒绝）
+│   ├── package.json / tsconfig.json   # 依赖与 TS 编译配置
+│   └── src/
+│       ├── main.tsx                   # React 入口：BrowserRouter + 字体 + 全局样式
+│       ├── App.tsx                    # 路由表（6 条）+ Layout 组合 + Toaster
+│       ├── types/index.ts             # 完整 TS 类型契约（与后端 dict 一一对应）
+│       ├── lib/
+│       │   ├── api.ts                 # 🔑 19 个 endpoint 封装 + SSE 流式解析
+│       │   └── utils.ts               # cn() / 时间格式化 / 截断工具
+│       ├── hooks/
+│       │   ├── useToast.ts            # Toast 全局 store（zustand）
+│       │   └── useTheme.ts            # dark/light 主题切换（localStorage 持久化）
+│       ├── components/
+│       │   ├── Layout.tsx             # 顶栏 + 桌面固定侧边栏 + 移动端抽屉
+│       │   ├── Sidebar.tsx            # 主导航 + 仓库/会话快捷列表
+│       │   ├── TopBar.tsx             # 主题切换 + 后端健康状态点
+│       │   ├── CodeBlock.tsx          # 语法高亮 + 行号 + 区间高亮（react-syntax-highlighter）
+│       │   ├── StatusBadge.tsx        # 索引四态徽章（待索引/索引中/已索引/失败）
+│       │   ├── ScoreBar.tsx           # 相似度分数条（0-100%）
+│       │   ├── EmptyState.tsx         # 空状态组件
+│       │   └── ui/                    # shadcn 风格基础组件（button/card/dialog/toast/select/tabs/scroll-area 等 11 个）
+│       └── pages/
+│           ├── HomePage.tsx           # 概览：能力卡片 + RAG 流程说明 + 快捷入口
+│           ├── ReposPage.tsx          # 仓库管理：列表 + zip上传/本地路径 + 触发索引 + 轮询 + 删除
+│           ├── RepoDetailPage.tsx     # 仓库详情：统计卡片 + 文件分布 + 分块分页 + 源码上下文
+│           ├── ChatPage.tsx           # 🔑 AI 对话：会话侧边栏 + SSE 流式 + RAG 过程抽屉
+│           ├── SearchPage.tsx         # 搜索试验场：检索结果 + Prompt 预览 + 向量预览
+│           └── SettingsPage.tsx       # 设置：LLM/Embedding/分块参数/System Prompt 分组表单
 │
 ├── docs/plans/                        # 📋 设计文档(ChatPage 重设计)
 ├── pyproject.toml                     # Python 项目元数据
@@ -122,7 +132,8 @@ Code-Probe/
 **要点**：
 - 后端严格分层：`api/`（路由薄层）→ `services/`（业务厚层）→ `config/`（配置）。`api` 不写业务，只校验参数和转调。
 - 持久化全用 **JSON 文件**（`repos.json` / `sessions.json` / `settings.json` / `{repo_id}_chunks.json`）+ ChromaDB 落盘目录，无独立数据库。
-- 前端 5 个页面对应 5 条业务线，`ChatPage.tsx` 是最复杂的（467 行，消费 SSE 流）。
+- 前端 6 个页面：1 个概览页 + 5 条业务线（仓库/详情/聊天/搜索/设置），`ChatPage.tsx` 最复杂（约 600 行，消费 SSE 流）。
+- 前端技术栈：React 18 + Vite 5 + TS + Tailwind v4 + Motion（动效）+ Phosphor Icons + Geist 字体，深色优先、emerald accent。
 
 ---
 
@@ -208,9 +219,9 @@ Code-Probe/
 └───────────────────────────────────────────┘
                     ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  前端 ChatPage：onEvent 按 type 分发                              │
-│  retrieval→存检索结果 / prompt→存提示词 / chunk→追加到回答流        │
-│  / done→结束 / error→报错                                         │
+│  前端 ChatPage：for await...of api.chat.stream() 按 event.type 分发 │
+│  retrieval→存 rag_data.retrieval / prompt→存 prompt_parts /       │
+│  chunk→追加到回答流（打字机） / done→结束 / error→报错              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -358,39 +369,46 @@ Code-Probe/
 
 **文件作用**：创建 app、加 CORS（全开）、挂 5 个 router 到 `/api`。21 行，最简单。
 
-### 5.9 前端 `App.tsx` — 布局根
+### 5.9 前端 `App.tsx` — 路由与布局根
 
-**文件作用**：`BrowserRouter` + `Layout`。根据路由切侧边栏：`/chat` 用 `IconRail`（图标窄栏，给对话腾空间），其他页用 `FullSidebar`（文字宽栏）。5 条路由 + 主题切换（dark/light，localStorage 持久化）。
+**文件作用**：`TooltipProvider` + `Routes`（6 条路由）+ `Layout` + `Toaster`。所有页面套在 `Layout` 里：桌面端固定 256px 侧边栏，移动端收成汉堡抽屉（`AnimatePresence` 滑入滑出）。
 
-**要点**：`useTheme` 在组件外先读 localStorage 初始化主题，避免首屏闪烁。
+**路由表**：`/`(概览) → `/repos`(仓库列表) → `/repos/:repoId`(仓库详情) → `/chat` + `/chat/:sessionId`(AI 对话，复用同一组件) → `/search`(搜索试验场) → `/settings`(设置)。
 
-### 5.10 前端 `services/api.ts` — API 封装 ⭐
+**要点**：`useTheme` 默认 dark 并从 localStorage 恢复，主题 class 挂在 `<html>` 上，Tailwind v4 用 `@custom-variant dark` 实现 class 式暗色切换（而非跟随系统）。
 
-**文件作用**：所有后端调用的封装层。通用 `request<T>` 函数 + 各模块函数 + SSE 手动解析。
+### 5.10 前端 `lib/api.ts` — API 封装 ⭐
 
-**阅读顺序建议**：`request`（通用 fetch 封装，~1-30）→ 各模块具名函数（~33-130）→ `chatStream`（SSE 解析，~132-末尾，重点）。
+**文件作用**：所有后端调用的封装层。统一 `request<T>`（错误时提取 FastAPI 的 `detail` 字段）+ 4 大模块（repos/chunks/chat/search/settings）+ `api.chat.stream` SSE 解析。
 
-**`chatStream` SSE 解析关键**（~132-末尾）：
-- 用 `fetch` 拿 `ReadableStream`，`getReader()` + `TextDecoder` 边读边解码。
-- 用 `buffer` 缓冲不完整的行，按 `\n` 切分，`data: ` 开头的行 `JSON.parse` 成 event 调 `onEvent`。
-- 返回一个 `cancel` 函数（设 `cancelled=true`），让组件卸载时能中止。
+**阅读顺序建议**：`request`（通用 fetch 封装，~10-40）→ 各模块方法（~45-190）→ `chat.stream`（SSE AsyncGenerator，~130-175，重点）。
 
-**要点**：`getChunkContext` 里 `chunk_id` 的 `#` 要编码成 `%23`（防 URL fragment 截断），但 `/` 不编码（让 FastAPI `{chunk_id:path}` 能捕获）——这个细节是 chunk_id 格式决定的。
+**`chat.stream` SSE 解析关键**：
+- 用 `fetch` + `POST` 拿 `ReadableStream`（`EventSource` 不支持 POST，这是必须手动解析的原因）。
+- `getReader()` + `TextDecoder` 边读边解码，用 `buffer` 缓冲不完整帧，按 `\n\n` 切帧。
+- 每帧取 `data: ` 开头的行 `JSON.parse`，`yield` 成 `ChatStreamEvent`——调用方用 `for await...of` 消费。
+- 前端 ChatPage 里用不可变更新把事件落到消息气泡（retrieval/prompt 存进 `rag_data`，chunk 追加文本流）。
+
+**要点**：`api.chunks.context` 会把 chunk_id 里的 `#` 编码成 `%23`（防 URL fragment 截断），但保留 `/`（让 FastAPI `{chunk_id:path}` 能捕获完整路径）——这是 chunk_id 格式决定的细节。zip 上传用 `FormData`（不手动设 Content-Type，浏览器自动加 boundary）；DELETE 204 无 body 单独处理。
 
 ### 5.11 前端 `pages/` + `components/` — UI 层
 
 | 文件                             | 行数    | 作用                                                |
 | -------------------------------- | ------- | --------------------------------------------------- |
-| `ChatPage.tsx`                   | 467     | 🔑 消费 SSE 流 + 会话列表 + RAG 过程展示（最大文件） |
-| `RepoManager.tsx`                | 287     | 仓库管理（上传/路径/索引触发/轮询状态）             |
-| `SearchPlayground.tsx`           | 277     | 搜索试验场（检索结果 + prompt 预览）                |
-| `ChunksExplorer.tsx`             | 217     | 分块浏览 + 源码定位                                 |
-| `SettingsPage.tsx`               | 188     | 设置表单（10 项配置）                               |
-| `RagPanel.tsx` / `RagDrawer.tsx` | 164/137 | RAG 过程展示（内联/抽屉两种形态）                   |
-| `MarkdownMessage.tsx`            | 163     | Markdown 渲染 + 代码高亮（prism）                   |
-| `types/index.ts`                 | 109     | 全局 TS 类型（Repo/Chunk/Session/Settings 等）      |
+| `pages/ChatPage.tsx`             | ~600    | 🔑 消费 SSE 流 + 会话侧边栏 + RAG 过程抽屉（最大文件） |
+| `pages/ReposPage.tsx`            | ~330    | 仓库管理（列表/zip上传/本地路径/触发索引/轮询/删除） |
+| `pages/RepoDetailPage.tsx`       | ~300    | 统计卡片 + 文件分布 + 分块分页 + 源码上下文 Dialog   |
+| `pages/SearchPage.tsx`           | ~280    | 搜索试验场（检索结果/Prompt 预览/向量预览 三 Tab）  |
+| `pages/SettingsPage.tsx`         | ~230    | 设置表单（LLM/Embedding/超参/System Prompt 分组）   |
+| `pages/HomePage.tsx`             | ~150    | 概览：能力卡片 + RAG 流程说明 + 快捷入口            |
+| `components/CodeBlock.tsx`       | ~90     | 语法高亮 + 行号 + 区间高亮（react-syntax-highlighter）|
+| `components/StatusBadge.tsx`     | ~45     | 索引四态徽章（待索引/索引中/已索引/失败）           |
+| `components/ScoreBar.tsx`        | ~30     | 相似度分数条（0-100%，颜色随分数变化）              |
+| `components/Layout/Sidebar/TopBar.tsx` | ~190 | 应用壳：响应式布局 + 导航 + 主题/健康状态           |
+| `components/ui/*.tsx`            | 11 个   | shadcn 风格基础组件（button/card/dialog/toast/select 等）|
+| `types/index.ts`                 | ~120    | 全局 TS 类型（Repo/Chunk/Session/Settings/SSE 事件） |
 
-**要点**：`ChatPage.tsx` 是前端核心，建议配合第 4.2 节流程图读——它把 SSE 4 种 event type 分别落到 UI 不同区域。
+**要点**：`ChatPage.tsx` 是前端核心，建议配合第 4.2 节流程图读——`handleSend` 里乐观追加 user+assistant 两条消息，再 `for await` 消费 SSE 事件，用 `updateLast` 不可变更新最后一条 assistant 消息（打字机效果）。点 assistant 消息下的"检索到 N 个代码片段"可打开 RAG 过程抽屉（检索结果 + prompt 四大组成）。
 
 ---
 
@@ -487,13 +505,16 @@ update_settings(partial):  当前值 ←合并← partial → 整体写回 setti
 
 ```
 
-# 2. 创建虚拟环境（Python >= 3.11）
+# 1. 创建虚拟环境（Python >= 3.11）
 python -m venv .venv
 .venv\Scripts\activate          # Windows
 # source .venv/bin/activate     # macOS/Linux
-# 3. 安装依赖
+
+# 2. 安装依赖
 pip install -r requirements.txt
 
+# 3. 配置环境变量
+填写.env文件
 ```
 
 ### 8.2 后端
@@ -524,9 +545,9 @@ npm install
 npm run dev
 ```
 
-`vite.config.ts` 已配置 `/api` 代理到后端 8000 端口，前端直接访问 `http://127.0.0.1:5173`。
+`vite.config.ts` 已配置 `/api` 代理到后端 `127.0.0.1:8000`（**注意用 IPv4 地址**：Node 把 `localhost` 解析成 IPv6 `::1`，而 uvicorn 只监听 IPv4，写 localhost 会报 `ECONNREFUSED ::1:8000`），前端直接访问 `http://localhost:5173`。
 
-### 8.3 首次使用流程
+### 8.4 首次使用流程
 
 1. 打开前端 →「系统设置」填 LLM API Key（兼容 OpenAI 的服务均可）→ 保存。
 2.「仓库管理」上传 zip 或指定本地代码库路径 → 点「建立索引」。
@@ -553,7 +574,7 @@ pytest
 第 4 步：services/search_service.py       → 理解向量检索（约 10 分钟）
 第 5 步：services/chat_service.py         → 理解 SSE 4 阶段（约 30 分钟，核心）
 第 6 步：api/ 五个路由 + main.py          → 理解 HTTP 层（约 15 分钟）
-第 7 步：前端 api.ts + ChatPage.tsx       → 理解 SSE 消费（约 30 分钟）
+第 7 步：前端 lib/api.ts + ChatPage.tsx       → 理解 SSE 消费（约 30 分钟）
 ```
 
 ### 9.2 复刻路线建议
@@ -628,11 +649,11 @@ pytest
 
 ### Q7: 前端怎么消费 SSE？为什么不用 EventSource？
 
-用 `fetch` + `ReadableStream` 手动解析（见 `api.ts` `chatStream`）。因为 `EventSource` 只支持 GET 请求，而本项目 `/chat` 是 POST（要传 message body），所以只能用 fetch 手动解析 `data: ` 行。
+用 `fetch` + `ReadableStream` 手动解析（见 `lib/api.ts` 的 `api.chat.stream`）。因为 `EventSource` 只支持 GET 请求，而本项目 `/chat` 是 POST（要传 message body），所以只能用 fetch + `getReader()` 手动按 `\n\n` 切帧解析 `data: ` 行，用 AsyncGenerator 逐条 `yield`。
 
 ### Q8: `chunk_id` 里的 `#` 为什么要编码？
 
-`chunk_id` 格式是 `{repo_id}/{file_path}#{chunk_index}`。URL 里 `#` 是 fragment 分隔符，不编码会被浏览器截断。前端 `getChunkContext` 把 `#` 替换成 `%23`，但保留 `/`（让 FastAPI `{chunk_id:path}` 能捕获完整路径）。
+`chunk_id` 格式是 `{repo_id}/{file_path}#{chunk_index}`。URL 里 `#` 是 fragment 分隔符，不编码会被浏览器截断。前端 `lib/api.ts` 的 `api.chunks.context` 把 `#` 替换成 `%23`，但保留 `/`（让 FastAPI `{chunk_id:path}` 能捕获完整路径）。
 
 ---
 
