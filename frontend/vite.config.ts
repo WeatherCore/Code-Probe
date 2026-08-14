@@ -16,7 +16,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        // 用 127.0.0.1 强制 IPv4：uvicorn 默认只监听 IPv4，
+        // 若写 localhost，Node 会优先解析成 IPv6 ::1 → ECONNREFUSED ::1:8000
+        target: "http://127.0.0.1:8000",
         changeOrigin: true,
       },
     },
