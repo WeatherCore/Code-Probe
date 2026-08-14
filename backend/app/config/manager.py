@@ -38,12 +38,18 @@ def get_settings() -> dict:
         return dict(DEFAULT_SETTINGS)
     
     # 场景2：有配置文件，读取用户保存的配置
-    with open(_self.SETTINGS_FILE, "r") as f:
+    # 显式 UTF-8：Windows 默认 GBK 读 UTF-8 的 JSON 会抛 'gbk' codec can't decode
+    with open(_self.SETTINGS_FILE, "r", encoding="utf-8") as f:
         stored = json.load(f)
 
     # 关键兼容逻辑
-    result = dict(DEFAULT_SETTINGS)   # 第一步：复制全套默认参数
-    result.update(stored)             # 第二步：用用户本地配置覆盖同名默认字典的key
+    result = dict(DEFAULT_SETTINGS)   # 第一步：复制全套默认参数（含 .env 注入的 key/base_url）
+    for k, v in stored.items():
+        # 第二步：用用户本地配置覆盖同名默认字典的 key
+        # 空值不覆盖：settings.json 里残留的空 api_key / 空字段，不能把 .env 配好的 key 顶掉
+        if v is None or v == "":
+            continue
+        result[k] = v
     return result
 
 # save_settings（写配置）：接收一整个完整配置字典，直接整体覆盖写回 settings.json（非增量）
@@ -52,9 +58,9 @@ def save_settings(settings: dict) -> None:
     # 先确保data目录存在
     _ensure_data_dir()
 
-    # w模式：直接覆盖重写整个json文件
-    with open(_self.SETTINGS_FILE, "w") as f:
-        json.dump(settings, f, indent=2)
+    # w模式：直接覆盖重写整个json文件（显式 UTF-8，保证跨平台/跨工具可读）
+    with open(_self.SETTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(settings, f, indent=2, ensure_ascii=False)
         # indent=2 让 JSON 格式化换行，方便人工打开查看
 
 # update_settings（部分更新）：读当前值 → 合并 partial → 整体写回

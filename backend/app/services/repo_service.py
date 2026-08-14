@@ -31,8 +31,8 @@ def _load_repos() -> list[dict]:
     # 如果repos.json还没创建过，直接返回空列表
     if not os.path.exists(REPOS_FILE):
         return []
-    # 存在就读取并返回仓库列表数组
-    with open(REPOS_FILE, "r") as f:
+    # 存在就读取并返回仓库列表数组（显式 UTF-8，避免 Windows 默认 GBK 读中文内容报错）
+    with open(REPOS_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 # _save_repos（写仓库列表）：配套保存函数，新增仓库后调用，将内存里修改后的列表落盘到本地文件
@@ -42,8 +42,9 @@ def _save_repos(repos: list[dict]) -> None:
     os.makedirs(DATA_DIR, exist_ok=True)
     # 把更新后的仓库列表w模式全覆盖写入repos.json，indent=2格式化方便查看
     # 因为每次调用前都会先_load_repos拿取所有数据再添加再写入，所以这里直接覆盖写不会重复写入
-    with open(REPOS_FILE, "w") as f:
-        json.dump(repos, f, indent=2)
+    # 显式 UTF-8 + ensure_ascii=False：中文路径/文件名原样落盘，GBK 写 emoji 等字符会崩
+    with open(REPOS_FILE, "w", encoding="utf-8") as f:
+        json.dump(repos, f, indent=2, ensure_ascii=False)
 
 # add_repo（本地路径导入比如 D:/project/demo）：把一个已存在的本地目录注册为代码库，不拷贝文件（直接引用原路径）
 def add_repo(path: str, name: str | None = None) -> dict:
@@ -92,8 +93,10 @@ def add_repo_from_upload(zip_path: str, name: str | None = None) -> dict:
 
     try:
         # 以只读模式打开上传的 zip 文件，把压缩包里所有文件、所有子文件夹全部解压到上面创建的 extract_dir 目录
+        # metadata_encoding="utf-8"：zip 内中文文件名按 UTF-8 解码（Python 3.11+），
+        # 避免 Windows 默认 cp437/GBK 把中文文件名解成乱码
         with zipfile.ZipFile(zip_path, "r") as zf:
-            zf.extractall(extract_dir)
+            zf.extractall(extract_dir, metadata_encoding="utf-8")
     # 如果上传的文件不是有效的 zip 压缩包，抛出异常并删除临时解压目录
     except zipfile.BadZipFile:
         # 递归删除刚才创建的解压文件夹，清理无效空目录，避免磁盘垃圾堆积

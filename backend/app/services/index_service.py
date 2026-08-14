@@ -29,8 +29,8 @@ def _load_chunks(repo_id: str) -> list[dict]:
     # 判断文件不存在 → 直接返回空列表，防止FileNotFoundError
     if not os.path.exists(f):
         return []
-    # 文件存在，打开把 JSON 文件解析成 Python 字典列表返回
-    with open(f) as fh:
+    # 文件存在，打开把 JSON 文件解析成 Python 字典列表返回（显式 UTF-8，chunk 内容可能含中文/emoji）
+    with open(f, encoding="utf-8") as fh:
         return json.load(fh)
 
 # _save_chunks（写分块）：把分块列表整体覆盖持久化写入 JSON
@@ -40,9 +40,10 @@ def _save_chunks(repo_id: str, chunks: list[dict]) -> None:
     os.makedirs(DATA_DIR, exist_ok=True)
 
     # 把分块列表整体覆盖持久化写入 JSON
-    with open(_chunks_file(repo_id), "w") as fh:
+    # 显式 UTF-8 + ensure_ascii=False：代码内容含中文/emoji 时必须 UTF-8，GBK 会抛 UnicodeEncodeError
+    with open(_chunks_file(repo_id), "w", encoding="utf-8") as fh:
         # json.dump 把切块字典列表存成 JSON
-        json.dump(chunks, fh, indent=2)
+        json.dump(chunks, fh, indent=2, ensure_ascii=False)
 
 
 # chunk_text（分块算法）：本项目最值得读的函数。字符数驱动 + 行边界对齐 + overlap 重叠。

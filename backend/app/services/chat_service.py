@@ -29,7 +29,8 @@ def _load_sessions() -> list[dict]:
     #  文件存在 → json.load() 读取全部会话数组返回
     if not os.path.exists(SESSIONS_FILE):
         return []
-    with open(SESSIONS_FILE) as f:
+    # 显式 UTF-8：会话内容含中文/代码，Windows 默认 GBK 读会崩
+    with open(SESSIONS_FILE, encoding="utf-8") as f:
         return json.load(f)
 
 # _save_sessions（写会话）：覆盖写入会话文件
@@ -37,9 +38,9 @@ def _save_sessions(sessions: list[dict]) -> None:
 
     # 确保数据文件夹一定存在，不存在自动创建，防止第一次运行报路径不存在错误
     os.makedirs(DATA_DIR, exist_ok=True)
-    # 覆盖写入会话文件
-    with open(SESSIONS_FILE, "w") as f:
-        json.dump(sessions, f, indent=2)
+    # 覆盖写入会话文件（显式 UTF-8 + ensure_ascii=False，中文原样保存）
+    with open(SESSIONS_FILE, "w", encoding="utf-8") as f:
+        json.dump(sessions, f, indent=2, ensure_ascii=False)
 
 # get_sessions（会话列表）：给前端侧边栏展示历史会话用
 def get_sessions() -> list[dict]:
