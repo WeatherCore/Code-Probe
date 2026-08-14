@@ -514,7 +514,7 @@ python -m venv .venv
 pip install -r requirements.txt
 
 # 3. 配置环境变量
-填写.env文件
+cp .env.example .env    # 填上自己的 API key
 ```
 
 ### 8.2 后端
