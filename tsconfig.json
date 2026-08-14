@@ -1,0 +1,13 @@
+{
+  // 根目录 tsconfig：让 VSCode 打开项目根目录时能正确识别前端 TS 项目。
+  // 前端真正的构建/开发配置在 frontend/tsconfig.json（Vite 只认它），
+  // 这里只是 extends 一份编译选项 + 重映射 @ 别名，供编辑器类型检查使用。
+  "extends": "./frontend/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./frontend/src/*"]
+    }
+  },
+  "include": ["./frontend/src"]
+}
