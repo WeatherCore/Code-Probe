@@ -2,8 +2,8 @@
 
 ## 中文版
 
-Code Probe 是基于全栈 RAG 的代码库检索增强问答系统，把任意代码库变成可自然语言提问的知识库。支持上传 ZIP 或指定本地路径导入代码，按行边界对齐分块、Embedding 向量化后存入 ChromaDB，提问时做余弦相似度 Top-K 检索，交给 LLM 流式生成带文件路径与行号的回答，并通过 SSE 四阶段事件把检索、Prompt 拼装、token 估算全程可视化。后端基于 FastAPI 与 OpenAI 兼容客户端构建，前端采用 React 18 + Vite + Tailwind CSS，深色优先响应式界面。适用于代码库智能问答、代码 RAG 学习与团队内部知识检索场景。
+Code-Probe 是把 Python 代码库变成可对话知识库的全栈 RAG 系统，自然语言提问得到带文件路径和行号引用的答案，RAG 全流程前端可见。其含金量在 RAG 工程化：字符分块按行边界对齐防语义断裂、SSE 四阶段流式让检索拼词生成持久化全程可见、Embedding 客户端 key 回退 LLM 配置、BackgroundTasks 后台索引加状态轮询。JSON 文件持久化无独立数据库，适合作为 RAG 工程化样本或扩展为多语言代码问答平台
 
 ## English
 
-Code Probe turns codebases into queryable knowledge bases via RAG. Code is chunked with line-boundary alignment, embedded into ChromaDB, and retrieved by cosine similarity to stream LLM answers with file-path citations; a 4-stage SSE flow visualizes retrieval and prompts. Built on FastAPI and a React + Vite + Tailwind UI.
+Code-Probe turns Python codebases into a chat-ready knowledge base — answers cite paths and line numbers. Highlights: line-aligned chunking, SSE four-phase streaming exposing RAG, embedding fallback to LLM creds. Stack: FastAPI + ChromaDB cosine + OpenAI, React 18 + Vite 5 + TS + Tailwind v4, JSON persistence. RAG sample or multilingual code Q&A.
