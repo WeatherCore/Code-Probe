@@ -203,7 +203,11 @@ def index_repo(repo_id: str) -> None:
             # abs_path：/data/uploads/xxx/main.py 完整绝对路径
             # repo["path"]：仓库根目录 /data/uploads/xxx
             # relpath 计算出相对仓库根目录的路径，结果：main.py，作用：存到 chunk 里不用存一长串绝对路径，前端展示简洁、迁移服务器路径不会失效
-            rel_path = os.path.relpath(abs_path, repo["path"])
+            # 关键修复（Windows）：os.path.relpath 在 Windows 上返回反斜杠分隔（a\b\c.py），
+            # 而 chunk_id 会进 URL（前端只编码 #），反斜杠会被浏览器规范化为正斜杠，导致
+            # 后端精确匹配 chunks.json 时对不上（Chunk not found）。
+            # 统一替换成 / 正斜杠，保证磁盘存储、URL 传输、匹配三方格式一致。
+            rel_path = os.path.relpath(abs_path, repo["path"]).replace("\\", "/")
 
             try:
                 # 读取文件内容，忽略编码错误（如文件是二进制文件）
@@ -305,8 +309,12 @@ def get_chunks(repo_id: str) -> list[dict]:
 # 使用场景：RAG 检索到向量 ID 后，后端调用这个接口取出完整代码、行号、重叠信息，组装上下文发给大模型回答用户问题
 def get_chunk(repo_id: str, chunk_id: str) -> dict | None:
     # get_chunk（取单个块）：线性查找，给 get_chunk_context 用。
+    # 匹配兜底（Windows 反斜杠问题）：历史索引数据里 chunk_id 可能是反斜杠分隔
+    # （os.path.relpath 在 Windows 返回 \），而前端 URL 传输时反斜杠被浏览器规范化成 /。
+    # 两边都归一化为 / 再比较，保证新旧数据都能匹配上。
+    norm_id = chunk_id.replace("\\", "/")
     for c in _load_chunks(repo_id):
-        if c["chunk_id"] == chunk_id:
+        if c["chunk_id"].replace("\\", "/") == norm_id:
             return c
     return None
 
@@ -329,7 +337,9 @@ def get_chunk_context(repo_id: str, chunk_id: str) -> dict:
     # repo["path"]：仓库在服务器本地的根文件夹
     # chunk["file_path"]：切块里存的相对路径（比如 utils/db.py）
     # 拼接出磁盘上真实文件地址，用来读取原始源码
-    abs_path = os.path.join(repo["path"], chunk["file_path"])
+    # 分隔符归一化：file_path 里统一存 /（新数据）或历史遗留 \（旧数据），
+    # 拼盘时都转成当前平台分隔符，保证能读到源文件。
+    abs_path = os.path.join(repo["path"], chunk["file_path"].replace("/", os.sep))
 
     try:
         # 读取完整源文件全文
